@@ -12,10 +12,10 @@
 
 
 #define HISTORY_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(hststore, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hststore(size, current_provider);     SEND_SVC_SIGNAL(hststore, current_provider, package, size)                         };\
-SVC_ACTION(hsthold, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hsthold(size, current_provider);     SEND_SVC_SIGNAL(hsthold, current_provider, package, size)                         };\
-SVC_ACTION(hstserve, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hstserve(size, current_provider);     SEND_SVC_SIGNAL(hstserve, current_provider, package, size)                         };\
-SVC_ACTION(hstreg, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hstreg(size, current_provider);     SEND_SVC_SIGNAL(hstreg, current_provider, package, size)                         }; \
+  SVC_ACTION(hststore, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hststore(size, current_provider);     SEND_SVC_SIGNAL(hststore, current_provider, package, request_id, size)                         };\
+SVC_ACTION(hsthold, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hsthold(size, current_provider);     SEND_SVC_SIGNAL(hsthold, current_provider, package, request_id, size)                         };\
+SVC_ACTION(hstserve, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hstserve(size, current_provider);     SEND_SVC_SIGNAL(hstserve, current_provider, package, request_id, size)                         };\
+SVC_ACTION(hstreg, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"historyservc"_n) {     _history_hstreg(size, current_provider);     SEND_SVC_SIGNAL(hstreg, current_provider, package, request_id, size)                         }; \
   static void svc_history_hststore() {     SEND_SVC_REQUEST(hststore, ) };\
 static void svc_history_hsthold() {     SEND_SVC_REQUEST(hsthold, ) };\
 static void svc_history_hstserve() {     SEND_SVC_REQUEST(hstserve, ) };\

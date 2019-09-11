@@ -12,7 +12,7 @@
 
 
 #define READFN_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(rfnuse, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"readfndspsvc"_n) {     _readfn_rfnuse(size, current_provider);     SEND_SVC_SIGNAL(rfnuse, current_provider, package, size)                         }; \
+  SVC_ACTION(rfnuse, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"readfndspsvc"_n) {     _readfn_rfnuse(size, current_provider);     SEND_SVC_SIGNAL(rfnuse, current_provider, package, request_id, size)                         }; \
   static void svc_readfn_rfnuse() {     SEND_SVC_REQUEST(rfnuse, ) };
 
 
