@@ -12,7 +12,7 @@
 
 
 #define AUTH_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(authusage, false, ((name)(account))((name)(permission))((std::string)(client_code))((checksum256)(payload_hash))((std::vector<char>)(signature)),              ((name)(account))((name)(permission))((std::string)(client_code))((checksum256)(payload_hash))((std::vector<char>)(signature)),          ((name)(account))((name)(permission))((std::string)(client_code))((checksum256)(payload_hash))((std::vector<char>)(signature)),"authfndspsvc"_n) {     _auth_authusage(account, permission, client_code, payload_hash, signature, current_provider);     SEND_SVC_SIGNAL(authusage, current_provider, package, request_id, account, permission, client_code, payload_hash, signature)                         }; \
+  SVC_ACTION(authusage, false, ((name)(account))((name)(permission))((std::string)(client_code))((checksum256)(payload_hash))((std::vector<char>)(signature)),              ((name)(account))((name)(permission))((std::string)(client_code))((checksum256)(payload_hash))((std::vector<char>)(signature)),          ((name)(account))((name)(permission))((std::string)(client_code))((checksum256)(payload_hash))((std::vector<char>)(signature)),"authfndspsvc"_n) {     _auth_authusage(account, permission, client_code, payload_hash, signature, current_provider);     SEND_SVC_SIGNAL(authusage, current_provider, package, account, permission, client_code, payload_hash, signature)                         }; \
   static void svc_auth_authusage(name account, name permission, std::string client_code, checksum256 payload_hash, std::vector<char> signature) {     SEND_SVC_REQUEST(authusage, account, permission, client_code, payload_hash, signature) };
 
 

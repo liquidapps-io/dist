@@ -12,7 +12,7 @@
 
 
 #define DNS_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(dnsq, true, ((std::vector<char>)(payload)),              ((std::vector<char>)(payload)),          ((std::vector<char>)(payload)),"dnsservices1"_n) {     _dns_dnsq(payload, current_provider);     SEND_SVC_SIGNAL(dnsq, current_provider, package, request_id, payload)                         }; \
+  SVC_ACTION(dnsq, true, ((std::vector<char>)(payload)),              ((std::vector<char>)(payload)),          ((std::vector<char>)(payload)),"dnsservices1"_n) {     _dns_dnsq(payload, current_provider);     SEND_SVC_SIGNAL(dnsq, current_provider, package, payload)                         }; \
   static void svc_dns_dnsq(std::vector<char> payload) {     SEND_SVC_REQUEST(dnsq, payload) };
 
 

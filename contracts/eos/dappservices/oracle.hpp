@@ -12,8 +12,8 @@
 
 
 #define ORACLE_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(geturi, true, ((std::vector<char>)(uri)),              ((uint32_t)(size))((std::vector<char>)(uri)),          ((uint32_t)(size))((std::vector<char>)(uri))((std::vector<char>)(data)),"oracleservic"_n) {     _oracle_geturi(size, uri, data, current_provider);     SEND_SVC_SIGNAL(geturi, current_provider, package, request_id, size, uri)                         };\
-SVC_ACTION(orcclean, false, ((std::vector<char>)(uri)),              ((uint32_t)(size))((std::vector<char>)(uri)),          ((uint32_t)(size))((std::vector<char>)(uri)),"oracleservic"_n) {     _oracle_orcclean(size, uri, current_provider);     SEND_SVC_SIGNAL(orcclean, current_provider, package, request_id, size, uri)                         }; \
+  SVC_ACTION(geturi, true, ((std::vector<char>)(uri)),              ((uint32_t)(size))((std::vector<char>)(uri)),          ((uint32_t)(size))((std::vector<char>)(uri))((std::vector<char>)(data)),"oracleservic"_n) {     _oracle_geturi(size, uri, data, current_provider);     SEND_SVC_SIGNAL(geturi, current_provider, package, size, uri)                         };\
+SVC_ACTION(orcclean, false, ((std::vector<char>)(uri)),              ((uint32_t)(size))((std::vector<char>)(uri)),          ((uint32_t)(size))((std::vector<char>)(uri)),"oracleservic"_n) {     _oracle_orcclean(size, uri, current_provider);     SEND_SVC_SIGNAL(orcclean, current_provider, package, size, uri)                         }; \
   static void svc_oracle_geturi(std::vector<char> uri) {     SEND_SVC_REQUEST(geturi, uri) };\
 static void svc_oracle_orcclean(std::vector<char> uri) {     SEND_SVC_REQUEST(orcclean, uri) };
 

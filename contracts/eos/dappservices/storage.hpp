@@ -12,9 +12,9 @@
 
 
 #define STORAGE_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(strstore, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strstore(size, current_provider);     SEND_SVC_SIGNAL(strstore, current_provider, package, request_id, size)                         };\
-SVC_ACTION(strhold, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strhold(size, current_provider);     SEND_SVC_SIGNAL(strhold, current_provider, package, request_id, size)                         };\
-SVC_ACTION(strserve, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strserve(size, current_provider);     SEND_SVC_SIGNAL(strserve, current_provider, package, request_id, size)                         }; \
+  SVC_ACTION(strstore, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strstore(size, current_provider);     SEND_SVC_SIGNAL(strstore, current_provider, package, size)                         };\
+SVC_ACTION(strhold, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strhold(size, current_provider);     SEND_SVC_SIGNAL(strhold, current_provider, package, size)                         };\
+SVC_ACTION(strserve, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strserve(size, current_provider);     SEND_SVC_SIGNAL(strserve, current_provider, package, size)                         }; \
   static void svc_storage_strstore() {     SEND_SVC_REQUEST(strstore, ) };\
 static void svc_storage_strhold() {     SEND_SVC_REQUEST(strhold, ) };\
 static void svc_storage_strserve() {     SEND_SVC_REQUEST(strserve, ) };
