@@ -3,7 +3,7 @@
 
 #define SVC_RESP_LOG(name) \
     SVC_RESP_X(log,name)
-    
+
 #define SVC_CONTRACT_NAME_LOG logservices1 
 
 
@@ -26,7 +26,7 @@ static void svc_log_logclear(std::string level) {     SEND_SVC_REQUEST(logclear,
 
 #else
 #define LOG_DAPPSERVICE_ACTIONS \
-  LOG_DAPPSERVICE_BASE_ACTIONS 
+  LOG_DAPPSERVICE_BASE_ACTIONS
 #endif
 
 

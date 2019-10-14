@@ -3,7 +3,7 @@
 
 #define SVC_RESP_READFN(name) \
     SVC_RESP_X(readfn,name)
-    
+
 #define SVC_CONTRACT_NAME_READFN readfndspsvc 
 
 
@@ -24,7 +24,7 @@
 
 #else
 #define READFN_DAPPSERVICE_ACTIONS \
-  READFN_DAPPSERVICE_BASE_ACTIONS 
+  READFN_DAPPSERVICE_BASE_ACTIONS
 #endif
 
 
