@@ -3,7 +3,7 @@
 
 #define SVC_RESP_IPFS(name) \
     SVC_RESP_X(ipfs,name)
-
+    
 #define SVC_CONTRACT_NAME_IPFS ipfsservice1 
 
 
@@ -28,7 +28,7 @@ static void svc_ipfs_warmup(std::string uri) {     SEND_SVC_REQUEST(warmup, uri)
 
 #else
 #define IPFS_DAPPSERVICE_ACTIONS \
-  IPFS_DAPPSERVICE_BASE_ACTIONS
+  IPFS_DAPPSERVICE_BASE_ACTIONS 
 #endif
 
 

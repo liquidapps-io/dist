@@ -3,7 +3,7 @@
 
 #define SVC_RESP_VACCOUNTS(name) \
     SVC_RESP_X(vaccounts,name)
-
+    
 #define SVC_CONTRACT_NAME_VACCOUNTS accountless1 
 
 
@@ -24,7 +24,7 @@
 
 #else
 #define VACCOUNTS_DAPPSERVICE_ACTIONS \
-  VACCOUNTS_DAPPSERVICE_BASE_ACTIONS
+  VACCOUNTS_DAPPSERVICE_BASE_ACTIONS 
 #endif
 
 

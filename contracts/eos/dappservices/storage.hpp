@@ -3,7 +3,7 @@
 
 #define SVC_RESP_STORAGE(name) \
     SVC_RESP_X(storage,name)
-
+    
 #define SVC_CONTRACT_NAME_STORAGE liquidstorag 
 
 
@@ -28,7 +28,7 @@ static void svc_storage_strserve() {     SEND_SVC_REQUEST(strserve, ) };
 
 #else
 #define STORAGE_DAPPSERVICE_ACTIONS \
-  STORAGE_DAPPSERVICE_BASE_ACTIONS
+  STORAGE_DAPPSERVICE_BASE_ACTIONS 
 #endif
 
 

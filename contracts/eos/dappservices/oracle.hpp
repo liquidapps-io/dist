@@ -3,7 +3,7 @@
 
 #define SVC_RESP_ORACLE(name) \
     SVC_RESP_X(oracle,name)
-
+    
 #define SVC_CONTRACT_NAME_ORACLE oracleservic 
 
 
@@ -26,7 +26,7 @@ static void svc_oracle_orcclean(std::vector<char> uri) {     SEND_SVC_REQUEST(or
 
 #else
 #define ORACLE_DAPPSERVICE_ACTIONS \
-  ORACLE_DAPPSERVICE_BASE_ACTIONS
+  ORACLE_DAPPSERVICE_BASE_ACTIONS 
 #endif
 
 

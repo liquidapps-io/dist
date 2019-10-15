@@ -3,7 +3,7 @@
 
 #define SVC_RESP_CRON(name) \
     SVC_RESP_X(cron,name)
-
+    
 #define SVC_CONTRACT_NAME_CRON cronservices 
 
 
@@ -24,7 +24,7 @@
 
 #else
 #define CRON_DAPPSERVICE_ACTIONS \
-  CRON_DAPPSERVICE_BASE_ACTIONS
+  CRON_DAPPSERVICE_BASE_ACTIONS 
 #endif
 
 
