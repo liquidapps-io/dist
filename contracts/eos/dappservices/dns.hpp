@@ -3,7 +3,7 @@
 
 #define SVC_RESP_DNS(name) \
     SVC_RESP_X(dns,name)
-    
+
 #define SVC_CONTRACT_NAME_DNS dnsservices1 
 
 
@@ -24,7 +24,7 @@
 
 #else
 #define DNS_DAPPSERVICE_ACTIONS \
-  DNS_DAPPSERVICE_BASE_ACTIONS 
+  DNS_DAPPSERVICE_BASE_ACTIONS
 #endif
 
 

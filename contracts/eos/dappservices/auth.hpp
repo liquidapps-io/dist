@@ -3,7 +3,7 @@
 
 #define SVC_RESP_AUTH(name) \
     SVC_RESP_X(auth,name)
-    
+
 #define SVC_CONTRACT_NAME_AUTH authfndspsvc 
 
 
@@ -24,7 +24,7 @@
 
 #else
 #define AUTH_DAPPSERVICE_ACTIONS \
-  AUTH_DAPPSERVICE_BASE_ACTIONS 
+  AUTH_DAPPSERVICE_BASE_ACTIONS
 #endif
 
 

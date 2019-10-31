@@ -3,7 +3,7 @@
 
 #define SVC_RESP_HISTORY(name) \
     SVC_RESP_X(history,name)
-    
+
 #define SVC_CONTRACT_NAME_HISTORY historyservc 
 
 
@@ -30,7 +30,7 @@ static void svc_history_hstreg() {     SEND_SVC_REQUEST(hstreg, ) };
 
 #else
 #define HISTORY_DAPPSERVICE_ACTIONS \
-  HISTORY_DAPPSERVICE_BASE_ACTIONS 
+  HISTORY_DAPPSERVICE_BASE_ACTIONS
 #endif
 
 
