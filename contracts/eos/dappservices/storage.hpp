@@ -12,12 +12,8 @@
 
 
 #define STORAGE_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(strstore, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strstore(size, current_provider);     SEND_SVC_SIGNAL(strstore, current_provider, package, size)                         };\
-SVC_ACTION(strhold, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strhold(size, current_provider);     SEND_SVC_SIGNAL(strhold, current_provider, package, size)                         };\
-SVC_ACTION(strserve, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"liquidstorag"_n) {     _storage_strserve(size, current_provider);     SEND_SVC_SIGNAL(strserve, current_provider, package, size)                         }; \
-  static void svc_storage_strstore() {     SEND_SVC_REQUEST(strstore, ) };\
-static void svc_storage_strhold() {     SEND_SVC_REQUEST(strhold, ) };\
-static void svc_storage_strserve() {     SEND_SVC_REQUEST(strserve, ) };
+  SVC_ACTION(sdummy, false, ((std::vector<char>)(data)),              ((uint32_t)(size))((std::string)(uri)),          ((uint32_t)(size))((std::string)(uri)),"liquidstorag"_n) {     _storage_sdummy(size, uri, current_provider);     SEND_SVC_SIGNAL(sdummy, current_provider, package, size, uri)                         }; \
+  static void svc_storage_sdummy(std::vector<char> data) {     SEND_SVC_REQUEST(sdummy, data) };
 
 
 #ifdef STORAGE_DAPPSERVICE_ACTIONS_MORE
@@ -33,7 +29,7 @@ static void svc_storage_strserve() {     SEND_SVC_REQUEST(strserve, ) };
 
 
 #ifndef STORAGE_SVC_COMMANDS
-#define STORAGE_SVC_COMMANDS() (xstrstore)(xstrhold)(xstrserve)
+#define STORAGE_SVC_COMMANDS() (xsdummy)
 
 
 #ifndef STORAGE_DAPPSERVICE_SKIP_HELPER

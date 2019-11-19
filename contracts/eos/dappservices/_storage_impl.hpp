@@ -1,12 +1,12 @@
 #pragma once
 #include <eosio/eosio.hpp>
-#define STORAGE_DAPPSERVICE_ACTIONS_MORE()
 
-SVC_RESP_STORAGE(strstore)(uint32_t size, name current_provider){
-}
+#if __has_include("storage/headers.hpp")
+#include "storage/headers.hpp"
+#endif
 
-SVC_RESP_STORAGE(strhold)(uint32_t size, name current_provider){
-}
-
-SVC_RESP_STORAGE(strserve)(uint32_t size, name current_provider){
+SVC_RESP_STORAGE(sdummy)(uint32_t size, std::string uri, name current_provider){
+#if __has_include("storage/cmds/sdummy.hpp")
+#include "storage/cmds/sdummy.hpp"
+#endif
 }
