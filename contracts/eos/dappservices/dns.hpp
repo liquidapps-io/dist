@@ -4,16 +4,32 @@
 #define SVC_RESP_DNS(name) \
     SVC_RESP_X(dns,name)
 
+
+
+#ifdef LIQUIDX
+
+#define SVC_CONTRACT_NAME_DNS SVC_CONTRACT_NAME_DNS_undefined 
+
+#else
 #define SVC_CONTRACT_NAME_DNS dnsservices1 
 
+#endif
 
 #include "../dappservices/_dns_impl.hpp"
 
 
 
 #define DNS_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(dnsq, true, ((std::vector<char>)(payload)),              ((std::vector<char>)(payload)),          ((std::vector<char>)(payload)),"dnsservices1"_n) {     _dns_dnsq(payload, current_provider);     SEND_SVC_SIGNAL(dnsq, current_provider, package, payload)                         }; \
-  static void svc_dns_dnsq(std::vector<char> payload) {     SEND_SVC_REQUEST(dnsq, payload) };
+SVC_ACTION(dnsq, true, ((std::vector<char>)(payload)),     \
+         ((std::vector<char>)(payload)), \
+         ((std::vector<char>)(payload)),TONAME(SVC_CONTRACT_NAME_DNS) ) \
+{ \
+    _dns_dnsq(payload, current_provider); \
+    SEND_SVC_SIGNAL(dnsq, current_provider, package, payload)                         \
+};  \
+static void svc_dns_dnsq(std::vector<char> payload) { \
+    SEND_SVC_REQUEST(dnsq, payload) \
+};
 
 
 #ifdef DNS_DAPPSERVICE_ACTIONS_MORE

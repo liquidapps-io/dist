@@ -4,16 +4,32 @@
 #define SVC_RESP_READFN(name) \
     SVC_RESP_X(readfn,name)
 
+
+
+#ifdef LIQUIDX
+
+#define SVC_CONTRACT_NAME_READFN SVC_CONTRACT_NAME_READFN_undefined 
+
+#else
 #define SVC_CONTRACT_NAME_READFN readfndspsvc 
 
+#endif
 
 #include "../dappservices/_readfn_impl.hpp"
 
 
 
 #define READFN_DAPPSERVICE_BASE_ACTIONS \
-  SVC_ACTION(rfnuse, false, ,              ((uint64_t)(size)),          ((uint64_t)(size)),"readfndspsvc"_n) {     _readfn_rfnuse(size, current_provider);     SEND_SVC_SIGNAL(rfnuse, current_provider, package, size)                         }; \
-  static void svc_readfn_rfnuse() {     SEND_SVC_REQUEST(rfnuse, ) };
+SVC_ACTION(rfnuse, false, ,     \
+         ((uint64_t)(size)), \
+         ((uint64_t)(size)),TONAME(SVC_CONTRACT_NAME_READFN) ) \
+{ \
+    _readfn_rfnuse(size, current_provider); \
+    SEND_SVC_SIGNAL(rfnuse, current_provider, package, size)                         \
+};  \
+static void svc_readfn_rfnuse() { \
+    SEND_SVC_REQUEST(rfnuse, ) \
+};
 
 
 #ifdef READFN_DAPPSERVICE_ACTIONS_MORE
