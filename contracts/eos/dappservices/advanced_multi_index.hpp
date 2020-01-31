@@ -1,24 +1,28 @@
 #pragma once
+#include "plisttree.hpp"
+#define SUBLIST_SIZE 128
 
-#include "advanced_multi_index.hpp"
+
+#include <vector>
+#include <tuple>
+#include <boost/hana.hpp>
+#include <functional>
+#include <utility>
+#include <type_traits>
+#include <iterator>
+#include <limits>
+#include <algorithm>
+#include <memory>
+#include <cmath>
+#include <eosio/time.hpp>
+#include <eosio/action.hpp>
+#include <eosio/name.hpp>
+#include <eosio/serialize.hpp>
+#include <eosio/datastream.hpp>
+#include <eosio/crypto.hpp>
+#include <eosio/singleton.hpp>
 
 #ifdef USE_ADVANCED_IPFS
-namespace dapp {
-    
-    using namespace eosio;
-    using namespace std;
-
-
-template <name::raw TableName,typename T, typename... Indices>
-class multi_index : public advanced_multi_index<TableName,T,uint64_t,Indices...>{
-    public:
-    multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
-      : advanced_multi_index<TableName,T,uint64_t,Indices...>(code, scope, shards, buckets_per_shard, pin_shards, pin_buckets, cleanup_delay)
-      {                    
-      }
-};
-}
-#else
 namespace dapp {
     
     using namespace eosio;
@@ -525,11 +529,12 @@ struct kv_t{
     ipfsmultihash_t value;
 };
 
+template <typename PrimKey>
 struct bucketParsedParts_t{
     vector<char> after;
     vector<char> before;
     
-    uint64_t key;
+    PrimKey key;
     uint64_t scope;
     ipfsmultihash_t value;
     bool include = false;
@@ -537,15 +542,17 @@ struct bucketParsedParts_t{
 
 #define emptyentry() vector<char>()
 
-static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t parts)
+template <typename PrimKey>
+static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t<PrimKey> parts)
 {
   auto result = parts.before;
+  uint8_t keyLength = std::max<uint8_t>(sizeof(PrimKey),8);
   char* chars;
   if(parts.include){
       chars = reinterpret_cast<char*>(&parts.scope);
       result.insert(result.end(), chars, chars + 8);
       chars = reinterpret_cast<char*>(&parts.key);
-      result.insert(result.end(), chars, chars + 8);
+      result.insert(result.end(), chars, chars + keyLength);
     //   chars = reinterpret_cast<char*>(parts.value.data());
       result.insert(result.end(), parts.value.begin(), parts.value.end());
   }
@@ -555,10 +562,11 @@ static std::vector<char> _combineParsedBucketParts(bucketParsedParts_t parts)
   return result;
 }
 // todo: improve with binary search
-static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scope, uint64_t key)
+template <typename PrimKey>
+static bucketParsedParts_t<PrimKey> _parseCacheBucket(vector<char> dictStr, uint64_t scope, PrimKey key)
 {
     auto bucketSize = dictStr.size();
-    bucketParsedParts_t bucketParsedParts;
+    bucketParsedParts_t<PrimKey> bucketParsedParts;
     auto bucketBegin = dictStr.begin();
     auto bucketEnd = bucketBegin + bucketSize;
     
@@ -569,7 +577,8 @@ static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scop
     bucketParsedParts.key = key;
     bucketParsedParts.scope = scope;
     auto currentIter = bucketBegin;
-    uint8_t keyLength = 8;
+    uint8_t scopeLength = 8;
+    uint8_t keyLength = std::max<uint8_t>(sizeof(PrimKey),8);
     uint8_t dataLength = 36;
     while(currentIter < bucketEnd)
     {
@@ -579,23 +588,21 @@ static bucketParsedParts_t _parseCacheBucket(vector<char> dictStr, uint64_t scop
         // read scope
         // auto current_value = (vector<uint64_t>(currentIter, currentIter + (keyLength*2)));
         auto currentScope = *reinterpret_cast<uint64_t *>( &(currentIter)[0] );
-        auto currentKey = *reinterpret_cast<uint64_t *>( &(currentIter+keyLength)[0] );
+        auto currentKey = *reinterpret_cast<PrimKey *>( &(currentIter+scopeLength)[0] );
         // uint64_t currentScope = current_value[0];
-        // uint64_t currentKey = current_value[1];
-
-  
+        // uint64_t currentKey = current_value[1];     
 
         if(scope < currentScope){
-            currentIter += (keyLength*2) + dataLength;
+            currentIter += scopeLength + keyLength + dataLength;
             continue;
         }
         // read key
         if(currentKey < key){
             // if smaller, continue
-            currentIter += (keyLength*2) + dataLength;
+            currentIter += scopeLength + keyLength + dataLength;
             continue;
         }
-        currentIter += (keyLength*2);
+        currentIter += scopeLength + keyLength;
         // found position
         auto before = (vector<char>(bucketBegin, entryStart));
         bucketParsedParts.before = before;
@@ -634,10 +641,13 @@ uint64_t _calcBucket(vector<char> fullKey){
     uint64_t res = *(p64a+3);
     return res;
 }
+
+
+template <typename PrimKey>
 struct bucket_t{
     uint32_t bucket;
     uint32_t shard;
-    uint64_t key;
+    PrimKey  key;
     uint64_t scope;
 };
 static inline vector<char> decode(string value){
@@ -649,46 +659,126 @@ struct shardbucket_data {
     std::vector<ipfsmultihash_t> values;
 };
 
-TABLE shardbucket {
-    ipfsmultihash_t shard_uri;
-    uint64_t shard;
-    uint64_t primary_key() const { return shard; }
-};
 //add a vconfig table
 //scope is the table name, index is the table scope
 //default everything to zero for uninitialized
+checksum256 empty256;
+
+template <typename PrimKey>
+inline checksum256 primary_to_key(PrimKey primary) {
+    std::array<uint128_t,2> arr = {0,primary};
+    return checksum256(arr);
+}
+
+template <typename PrimKey>
+inline PrimKey key_to_primary(checksum256 key) {
+    auto data = key.data();
+    return static_cast<PrimKey>(data[1]);
+}
+
+template <typename PrimKey>
+inline std::string primary_to_string(PrimKey primary) {
+    return name(primary).to_string();
+}
+
+template <>
+inline std::string primary_to_string<uint128_t>(uint128_t primary) {
+    uint64_t upper = primary >> 64;
+    return name(upper).to_string() + "-" + name(primary).to_string();
+}
+
+template <>
+inline std::string primary_to_string<checksum256>(checksum256 primary) {
+    auto data = primary.data();
+    return primary_to_string<uint128_t>(data[0]) + "-" + primary_to_string<uint128_t>(data[1]);
+}
+
+template <>
+inline checksum256 primary_to_key<checksum256>(checksum256 primary) {
+    return primary;
+}
+
+template <>
+inline checksum256 key_to_primary<checksum256>(checksum256 key) {
+    return key;
+}
+
+inline checksum256 increment256(checksum256 key) {
+    auto data = key.data();
+    if(data[1] < std::numeric_limits<uint128_t>::max()) {
+        data[1]++;
+    } else {
+        data[1] = 0;
+        data[0]++;
+    }
+    std::array<uint128_t,2> arr = {data[0],data[1]};  
+    return checksum256(arr);
+}
+
 TABLE vconfig {
-    uint64_t next_available_key = 0;
+    checksum256 next_available_key = empty256;
     uint32_t shards = 0;
-    uint32_t buckets_per_shard = 0; 
+    uint32_t buckets_per_shard = 0;
+    uint32_t revision = 0;
 };
 
-template<name::raw TableName>
+TABLE shardbucket {
+    ipfsmultihash_t shard_uri;
+    uint64_t shard;
+    uint32_t revision = 0;
+    uint64_t primary_key() const { return shard; }
+};
+
+TABLE manifest {
+    checksum256 next_available_key;
+    uint32_t shards;
+    uint32_t buckets_per_shard;
+    //<shard,shard_uri>
+    //we dont use the ipfsmultihash_t alias because it breaks abi
+    std::map<uint64_t,std::vector<char>> shardbuckets;
+};
+
+TABLE backup {
+    uint64_t id;
+    ipfsmultihash_t manifest_uri;
+    time_point timestamp;
+    string description;
+    uint64_t primary_key() const { return id; }    
+};
+
+template<name::raw TableName, typename PrimKey>
 class sharded_hashtree_t{
+    name     _code;
+    name     _self;
     uint32_t _shards;
-    uint32_t _buckets_per_shard; 
+    uint32_t _buckets_per_shard;    
     uint64_t _scope; 
     uint32_t _cleanup_delay;
     bool _pin_shards;
     bool _pin_buckets;
+    bool _external;
 
 
     public:
 
     // struct bucket_data_t {
     //     std::vector<kv_t> values;
-    // };   
+    // }; 
+
 
     uint32_t get_shards()const  { return _shards; }
-    uint32_t get_buckets()const { return _buckets_per_shard; }
+    uint32_t get_buckets()const { return _buckets_per_shard; }      
 
-    
+    typedef eosio::singleton<".vmanifest"_n, manifest> vmanifest_sgt; 
+    typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt; 
     typedef eosio::multi_index<TableName, shardbucket> shardbucket_t;
     
     
     
-    
-    sharded_hashtree_t(uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
+    sharded_hashtree_t(name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0){
+        _code = code;
+        _self = current_receiver();
+        _external = _code == _self ? false : true;
         _shards = shards;
         _buckets_per_shard = buckets_per_shard;
         _scope = scope;
@@ -697,7 +787,7 @@ class sharded_hashtree_t{
         _cleanup_delay = cleanup_delay;
     }
     
-    ipfsmultihash_t* get(uint64_t primary) const{
+    ipfsmultihash_t* get(PrimKey primary) const{
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, true);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
@@ -707,7 +797,7 @@ class sharded_hashtree_t{
         return new ipfsmultihash_t(value);
     }
     
-    void add(uint64_t primary, ipfsmultihash_t value, name payer){
+    void add(PrimKey primary, ipfsmultihash_t value, name payer){
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, false);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
@@ -718,7 +808,7 @@ class sharded_hashtree_t{
         setBucket(sb, bucketData);
     }
     
-    void set(uint64_t primary, ipfsmultihash_t value, name payer){
+    void set(PrimKey primary, ipfsmultihash_t value, name payer){
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, false);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
@@ -728,7 +818,7 @@ class sharded_hashtree_t{
         setBucket(sb, bucketData);
     }
     
-    void erase(uint64_t primary){
+    void erase(PrimKey primary){
         auto sb = getBucketShard(primary);
         auto bucketData = getBucket(sb, false);
         bucketParsedParts_t bucketParsedParts = _parseCacheBucket(bucketData,  sb.scope,  sb.key);
@@ -742,54 +832,119 @@ class sharded_hashtree_t{
     
     
   private:
-    bucket_t& getBucketShard(uint64_t primary) const{
-        bucket_t result;
+    bucket_t<PrimKey>& getBucketShard(PrimKey primary) const{
+        bucket_t<PrimKey> result;
         result.key = primary;
         // concate with scope
-        auto fullkey = decode(name(_scope).to_string() + "-" + name(primary).to_string());
+        std::string keystring = name(_scope).to_string() + "-" + primary_to_string<PrimKey>(primary);
+        auto fullkey = decode(keystring);
         auto hash = _calcBucket(fullkey);
         result.bucket = hash & (_buckets_per_shard-1);
         result.shard = (hash >> 6) & (_shards-1);
         result.scope = _scope;
         return *(new bucket_t(result));
+    }    
+
+    ipfsmultihash_t makeShardPointer() const{
+        auto emptyDataHash = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(emptyentry(), true));
+        shardbucket_data newBucketData;
+        newBucketData.values = std::vector<ipfsmultihash_t>();
+        for (int i = 0; i < _buckets_per_shard; i++) {
+            newBucketData.values.insert(newBucketData.values.end(),emptyDataHash);
+        }
+        auto new_shard_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(newBucketData, true, _cleanup_delay));
+        return new_shard_pointer;
     }
     
     // add cache for shard data and bucket
-    std::vector<char> getBucket(bucket_t& sb, bool pin = false) const{
+    std::vector<char> getBucket(bucket_t<PrimKey>& sb, bool pin = false) const{
         // get pointer from RAM
-        auto _self = current_receiver();
-        shardbucket_t _shardbucket_table(_self,current_receiver().value);
+        shardbucket_t _shardbucket_table(_code,_code.value);
         auto shardData = _shardbucket_table.find(sb.shard);
-        if(shardData == _shardbucket_table.end()){
-            auto emptyDataHash = uri_to_ipfsmultihash(ipfs_svc_helper::setRawData(emptyentry(), true));
-            shardbucket_data newBucketData;
-            newBucketData.values = std::vector<ipfsmultihash_t>();
-            for (int i = 0; i < _buckets_per_shard; i++) {
-                newBucketData.values.insert(newBucketData.values.end(),emptyDataHash);
+
+        vconfig_sgt vconfigsgt(_code,name(TableName).value);
+        auto config = vconfigsgt.get_or_default();
+
+        //we skip manifest handling if this is an external vram table
+        //TODO: load the external manifest version of shard, but do not save the changes
+        if(!_external) {
+            vmanifest_sgt vmanifestsgt(_code,name(TableName).value);
+            auto manifest = vmanifestsgt.get_or_default();
+            auto loading = manifest.shardbuckets.find(sb.shard);
+            
+            //lazy load data if manifest exists
+            if(loading != manifest.shardbuckets.end()) {
+                if(shardData == _shardbucket_table.end()){ 
+                    //update the pointer for use below 
+                    shardData = _shardbucket_table.emplace(_self, [&]( auto& a ) {
+                        // new dataset
+                        a.shard_uri = loading->second;
+                        a.shard = sb.shard;
+                        a.revision = config.revision;
+                    });
+                } else {
+                    _shardbucket_table.modify(shardData, _self, [&]( auto& a ) {
+                        // modify dataset
+                        a.shard_uri = loading->second;
+                        a.revision = config.revision;
+                    });
+                }
+
+                manifest.shardbuckets.erase(loading);
+                vmanifestsgt.set(manifest,_self);
             }
-            auto new_shard_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(newBucketData, true, _cleanup_delay));
-            _shardbucket_table.emplace(_self, [&]( auto& a ) {
-                // new dataset
-                a.shard_uri = new_shard_pointer;
-                a.shard = sb.shard;
-            });
+        }        
+
+        //emplace and return empty if no existing data
+        if(shardData == _shardbucket_table.end()){  
+            if(!_external) { //only emplace our own table
+                _shardbucket_table.emplace(_self, [&]( auto& a ) {
+                    // new dataset
+                    a.shard_uri = makeShardPointer();
+                    a.shard = sb.shard;
+                    a.revision = config.revision;
+                });
+            }
+            
             return emptyentry();
         }
-        else
-        {
-            auto shard_uri = shardData->shard_uri;
-            // get data 
-            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin, false, _cleanup_delay);
+        //modify and return empty if revision change        
+        else if(shardData->revision != config.revision){
+            if(!_external) { //only modify our own table
+                _shardbucket_table.modify(shardData, _self, [&]( auto& a ) {
+                    // modify dataset
+                    a.shard_uri = makeShardPointer();
+                    a.revision = config.revision;
+                });
+            }
+            return emptyentry();
+        }
+        else //existing data and no revision change
+        {            
+            auto shard_uri = shardData->shard_uri;            
+            #ifdef USE_IPFS_WARMUPROW
+            auto castedKey = primary_to_key<PrimKey>(sb.key);
+            uint8_t keySize = std::max<uint8_t>(sizeof(PrimKey),8);
+            uint8_t index_position = 1;
+            // get data with optimistic loading
+            // other name ideas: getLoadMerkleData, getLoadMerkleProof, getLoadTreeData.
+            // like you're instantiating part of the proof and optimistically loading the rest
+            auto bucket_data = ipfs_svc_helper::getTreeData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), name(_code), name(TableName), _scope, index_position, castedKey, keySize, _pin_shards && pin, false, _cleanup_delay);
+            #else
+            auto bucket_data = ipfs_svc_helper::getData<shardbucket_data>(ipfsmultihash_to_uri(shard_uri), _pin_shards && pin, false, _cleanup_delay, name(_code));
+            #endif
             auto bucket_uri = bucket_data.values[sb.bucket];
-            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin, false, _cleanup_delay);
+            auto bucket_raw_data = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(bucket_uri), _pin_buckets && pin, false, _cleanup_delay, name(_code));
             // read and return data
             return bucket_raw_data;
-            
         }
     }
     
-    void setBucket(bucket_t& sb, std::vector<char> data){
-        shardbucket_t _shardbucket_table(current_receiver(),current_receiver().value);
+    void setBucket(bucket_t<PrimKey>& sb, std::vector<char> data){
+        //getBucket is always called before setBucket so we don't
+        //need to place any revision logic here
+        eosio::check(!_external, "cannot modify objects in vram of another contract");
+        shardbucket_t _shardbucket_table(_self,_self.value);
         auto shardData = _shardbucket_table.find(sb.shard);
         eosio::check(shardData != _shardbucket_table.end(), "shard not found");
         auto shard_uri = shardData->shard_uri;
@@ -811,9 +966,9 @@ class sharded_hashtree_t{
 };
 
 
-template <name::raw TableName,typename T, typename... Indices>
-class multi_index{
-    static_assert( sizeof...(Indices) <= 16, "multi_index only supports a maximum of 16 secondary indices" );
+template <name::raw TableName,typename T, typename PrimKey = uint64_t, typename... Indices>
+class advanced_multi_index{
+    static_assert( sizeof...(Indices) <= 16, "advanced_multi_index only supports a maximum of 16 secondary indices" );
     
     constexpr static bool validate_table_name( name n ) {
      // Limit table names to 12 characters so that the last character (4 bits) can be used to distinguish between the secondary indices.
@@ -822,36 +977,40 @@ class multi_index{
     
     constexpr static size_t max_stack_buffer_size = 512;
     
-    static_assert( validate_table_name( name(TableName) ), "multi_index does not support table names with a length greater than 12");
+    static_assert( validate_table_name( name(TableName) ), "advanced_multi_index does not support table names with a length greater than 12");
 
 
     name     _code;
     uint64_t _scope;  
-    uint32_t _cleanup_delay;
-    typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt;   
-    sharded_hashtree_t<TableName> primary_hashtree;
+    uint32_t _cleanup_delay; 
+    
+    typedef eosio::singleton<".vmanifest"_n, manifest> vmanifest_sgt; 
+    typedef eosio::singleton<".vconfig"_n, vconfig> vconfig_sgt; 
+    typedef eosio::multi_index<TableName, shardbucket> shardbucket_t;    
+    typedef eosio::multi_index<".vbackups"_n, backup> backups_t;
+    sharded_hashtree_t<TableName, PrimKey> primary_hashtree;
 
   struct item : public T
   {
      template<typename Constructor>
-     item( const multi_index* idx, Constructor&& c )
+     item( const advanced_multi_index* idx, Constructor&& c )
      :__idx(idx){
         c(*this);
      }
 
-     const multi_index* __idx;
-     int32_t            __primary_itr;
-     int32_t            __iters[sizeof...(Indices)+(sizeof...(Indices)==0)];
+     const advanced_multi_index* __idx;
+     int32_t                     __primary_itr;
+     int32_t                     __iters[sizeof...(Indices)+(sizeof...(Indices)==0)];
   };
 
   struct item_ptr
   {
-     item_ptr(std::unique_ptr<item>&& i, uint64_t pk, int32_t pitr)
+     item_ptr(std::unique_ptr<item>&& i, PrimKey pk, int32_t pitr)
      : _item(std::move(i)), _primary_key(pk), _primary_itr(pitr) {}
 
-     std::unique_ptr<item> _item;
-     uint64_t              _primary_key;
-     int32_t               _primary_itr;
+     std::unique_ptr<item>     _item;
+     PrimKey                   _primary_key;
+     int32_t                   _primary_itr;
   };
 
   mutable std::vector<item_ptr> _items_vector;
@@ -860,8 +1019,9 @@ class multi_index{
         };
 
 
-    template<uint64_t I>
-    struct intc { enum e{ value = I }; operator uint64_t()const{ return I; }  };
+    // template<PrimKey I>
+    // struct intc { enum e{ value = I }; operator auto()const{ return I; }  }; //auto instead of uint_64_t?
+
 struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, const T> {
          friend bool operator == ( const b_const_iterator& a, const b_const_iterator& b ) {
             return a._inner == b._inner;
@@ -873,13 +1033,13 @@ struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
          const T& operator*()const { 
              auto iter = (*_inner);
              auto ipfsHash = iter.get();
-             T& obj = ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay);
+             T& obj = ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay, name(_code));
              return obj;
          }
          const T* operator->()const { 
              auto iter =  (*_inner);
              auto ipfsHash = iter.get();
-             return new T(ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay));
+             return new T(ipfs_svc_helper::getData<T>(ipfsmultihash_to_uri(ipfsHash), false, false, _cleanup_delay, name(_code)));
          }
 
          b_const_iterator operator++(int) {
@@ -922,14 +1082,15 @@ struct b_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
             // _item = &_multidx->load_object_by_primary_iterator( prev_itr );
             return *this;
          }
-            b_const_iterator( const multi_index* mi, btree_t<uint64_t,ipfsmultihash_t>::const_iterator* i = nullptr )
+         
+            b_const_iterator( const advanced_multi_index* mi, typename btree_t<PrimKey,ipfsmultihash_t>::const_iterator* i = nullptr )
             :_multidx(mi),_inner(i){}
          private:
 
 
-            const multi_index* _multidx;
-            btree_t<uint64_t,ipfsmultihash_t>::const_iterator*        _inner;
-            friend class multi_index;
+            const advanced_multi_index* _multidx;
+            typename btree_t<PrimKey,ipfsmultihash_t>::const_iterator*        _inner;
+            friend class advanced_multi_index;
       }; /// struct multi_index::b_const_iterator
 
 
@@ -967,20 +1128,20 @@ struct h_const_iterator : public std::iterator<std::bidirectional_iterator_tag, 
          h_const_iterator& operator--() {
             return *this;
          }
-            h_const_iterator( const multi_index* mi, T* i = nullptr )
+            h_const_iterator( const advanced_multi_index* mi, T* i = nullptr )
             :_multidx(mi),_inner(i){}
          private:
 
 
-            const multi_index* _multidx;
+            const advanced_multi_index* _multidx;
             T*        _inner;
-            friend class multi_index;
+            friend class advanced_multi_index;
       }; /// struct multi_index::h_const_iterator
 
 
 typedef h_const_iterator const_iterator;
       typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-    const const_iterator& vdb_find_i64(uint64_t primary) const{
+    const const_iterator& vdb_find_i64(PrimKey primary) const{
         // find in primary index (btree)
         // if 
       
@@ -1000,7 +1161,7 @@ typedef h_const_iterator const_iterator;
             // auto itm = std::make_unique<item>( this, [&]( auto& i ) {
                 T val;
                 // get from ipfs (c)
-                auto rawData = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(*c), false, false, _cleanup_delay);
+                auto rawData = ipfs_svc_helper::getRawData(ipfsmultihash_to_uri(*c), false, false, _cleanup_delay, name(_code));
                 char * buffer = rawData.data();
                 auto size = rawData.size();
                 datastream<const char*> ds( (char*)buffer, uint32_t(size) );
@@ -1022,18 +1183,28 @@ typedef h_const_iterator const_iterator;
         // data.rootNode = root.pack();    
         // multiindex_s.set(data, name(current_receiver()));
     }
-    void vdb_remove_i64(uint64_t key){
+    void vdb_remove_i64(PrimKey key){
         // auto key = itr->primary_key();
         primary_hashtree.erase(key);
         commit();
+    }
+
+    ipfsmultihash_t makeManifestPointer(manifest manifest) const{
+        auto new_manifest_pointer = uri_to_ipfsmultihash(ipfs_svc_helper::setData(manifest, false, _cleanup_delay));
+        return new_manifest_pointer;
+    }
+
+    manifest getManifest(std::string uri) const{
+        manifest result = ipfs_svc_helper::getData<manifest>(uri, false);
+        return result;
     }
       
       
 
  public:
-      multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
-      :_code(code),_scope(scope),primary_hashtree(_scope, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
-      {                    
+      advanced_multi_index( name code, uint64_t scope, uint32_t shards = 1024,uint32_t buckets_per_shard = 64, bool pin_shards = false, bool pin_buckets = false, uint32_t cleanup_delay = 0)
+      :_code(code),_scope(scope),primary_hashtree(_code, _scope, shards, buckets_per_shard, pin_shards, pin_buckets,cleanup_delay),_cleanup_delay(cleanup_delay)
+      {
       }
 
       name get_code()const      { return _code; }
@@ -1043,31 +1214,29 @@ typedef h_const_iterator const_iterator;
       const_reverse_iterator crbegin()const { return std::make_reverse_iterator(cend()); }
       const_reverse_iterator rbegin()const  { return crbegin(); }
       const_iterator end()const    { return cend(); }
-
-      uint64_t available_primary_key()const {
+      
+      PrimKey available_primary_key()const {
           vconfig_sgt vconfigsgt(_code,name(TableName).value);
           auto config = vconfigsgt.get_or_default();       
-          return config.next_available_key;
+          return key_to_primary<PrimKey>(config.next_available_key);
       }
 
       template<typename Lambda>
       const_iterator emplace( name payer, Lambda&& constructor ) {
          using namespace _multi_index_detail;
-
-         eosio::check( _code == current_receiver(), "cannot create objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
-            
             T obj = T();
             constructor( obj );
 
             auto buffer = eosio::pack(obj);
 
             auto pk = obj.primary_key();
-
             //populate/update the config singleton
+            //this will fail automatically for an external contract
             vconfig_sgt vconfigsgt(_code,name(TableName).value);
             auto config = vconfigsgt.get_or_default();
-            if(config.next_available_key < pk + 1) //dont decrease next_available_key
-                config.next_available_key = pk + 1; //increment the key
+            auto incrpk = increment256(primary_to_key<PrimKey>(pk));
+            if(config.next_available_key < incrpk) //dont decrease next_available_key
+                config.next_available_key = incrpk; //increment the key
             if(config.shards == 0 && config.buckets_per_shard == 0) {
                 //config is not yet set
                 config.shards = primary_hashtree.get_shards();
@@ -1078,7 +1247,6 @@ typedef h_const_iterator const_iterator;
                 eosio::check(config.buckets_per_shard == primary_hashtree.get_buckets(), "cannot initialize multi-index with different number of buckets per shard");
             }            
             vconfigsgt.set(config,_code);
-            
             
 
             auto uri = ipfs_svc_helper::setRawData(buffer, false, _cleanup_delay);
@@ -1099,8 +1267,6 @@ typedef h_const_iterator const_iterator;
       template<typename Lambda>
       void modify( const T& obj, name payer, Lambda&& updater ) {
          using namespace _multi_index_detail;
-
-         eosio::check( _code == current_receiver(), "cannot modify objects in table of another contract" ); // Quick fix for mutating db using multi_index that shouldn't allow mutation. Real fix can come in RC2.
          auto pk = obj.primary_key();
 
          auto& mutableobj = const_cast<T&>(obj); // Do not forget the auto& otherwise it would make a copy and thus not update at all.
@@ -1115,16 +1281,16 @@ typedef h_const_iterator const_iterator;
          primary_hashtree.set(pk, multihash, payer);
          commit();
       }
-      const T& get( uint64_t primary, const char* error_msg = "unable to find key" )const {
+      const T& get( PrimKey primary, const char* error_msg = "unable to find key" )const {
          auto result = find( primary );
          eosio::check( result != cend(), error_msg );
          return *result;
       }
-      const_iterator find( uint64_t primary )const {
+      const_iterator find( PrimKey primary )const {
          auto itr = vdb_find_i64(primary);
          return itr;
       }
-      const_iterator require_find( uint64_t primary, const char* error_msg = "unable to find key" )const {
+      const_iterator require_find( PrimKey primary, const char* error_msg = "unable to find key" )const {
          auto itr = vdb_find_i64(primary);
          return itr;
       }
@@ -1144,7 +1310,84 @@ typedef h_const_iterator const_iterator;
          using namespace _multi_index_detail;
          auto pk = obj.primary_key();
          vdb_remove_i64( pk );
-      }    
+      }   
+
+      void clear() {
+        vconfig_sgt vconfigsgt(_code,name(TableName).value);
+        auto config = vconfigsgt.get_or_default();
+        config.revision++;    
+        config.next_available_key = empty256; //reset the next available key
+        vconfigsgt.set(config,_code);
+      } 
+
+      void create_manifest(string description) {
+          vmanifest_sgt vmanifestsgt(_code,name(TableName).value);
+          auto manifest = vmanifestsgt.get_or_default();
+
+          vconfig_sgt vconfigsgt(_code,name(TableName).value);
+          auto config = vconfigsgt.get_or_default();
+
+          manifest.next_available_key = config.next_available_key;
+          manifest.shards = config.shards;
+          manifest.buckets_per_shard = config.buckets_per_shard;
+
+          shardbucket_t _shardbucket_table(_code,_code.value);
+          auto shard_itr = _shardbucket_table.begin();
+          //TODO: can we loop 1024 in a single tx?
+          while(shard_itr != _shardbucket_table.end()) {
+              if(shard_itr->revision == config.revision) {
+                  manifest.shardbuckets[shard_itr->shard] = shard_itr->shard_uri;
+              }
+              shard_itr++;
+          }
+
+          auto manifest_uri = makeManifestPointer(manifest);
+          backups_t backups(_code,name(TableName).value);
+          backups.emplace(_code, [&]( auto& a ) {
+              a.id = backups.available_primary_key();
+              a.timestamp = current_time_point();
+              a.description = description;
+              a.manifest_uri = manifest_uri;
+          });
+      }
+
+      void load_manifest(manifest manifest, string description) {
+        vmanifest_sgt vmanifestsgt(_code,name(TableName).value);
+        vmanifestsgt.set(manifest,_code);
+
+        vconfig_sgt vconfigsgt(_code,name(TableName).value);
+        auto config = vconfigsgt.get_or_default();
+        config.revision++; 
+        config.next_available_key = manifest.next_available_key;
+        config.shards = manifest.shards;
+        config.buckets_per_shard = manifest.buckets_per_shard;
+        vconfigsgt.set(config,_code);
+
+        auto manifest_uri = makeManifestPointer(manifest);
+        backups_t backups(_code,name(TableName).value);
+        backups.emplace(_code, [&]( auto& a ) {
+            a.id = backups.available_primary_key();
+            a.timestamp = current_time_point();
+            a.description = description;
+            a.manifest_uri = manifest_uri;
+        });
+      }
+
+      void load_manifest(std::string uri, string description) {
+          manifest manifest = getManifest(uri);
+          load_manifest(manifest, description);
+      }
+
+      void load_manifest(ipfsmultihash_t ipfshash, string description) {
+          load_manifest(ipfsmultihash_to_uri(ipfshash));
+      }
+
+      void load_manifest(uint64_t backup_id, string description) {
+          backups_t backups(_code,name(TableName).value);
+          auto it = backups.find(backup_id);
+          eosio::check(it != backups.end(), "invalid backup id");
+          load_manifest(it->manifest_uri, description);
+      }
 };
 }
 #endif
