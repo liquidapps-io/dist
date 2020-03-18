@@ -40,6 +40,27 @@ SVC_ACTION(warmup, true, ((std::string)(uri)),     \
 { \
     _ipfs_warmup(size, uri, data, current_provider); \
     SEND_SVC_SIGNAL(warmup, current_provider, package, size, uri)                         \
+}; \
+SVC_ACTION(warmupcode, true, ((std::string)(uri))((name)(code)),     \
+         ((uint32_t)(size))((std::string)(uri)), \
+         ((uint32_t)(size))((std::string)(uri))((std::vector<char>)(data)),TONAME(SVC_CONTRACT_NAME_IPFS) ) \
+{ \
+    _ipfs_warmupcode(size, uri, data, current_provider); \
+    SEND_SVC_SIGNAL(warmupcode, current_provider, package, size, uri)                         \
+}; \
+SVC_ACTION(warmuprow, true, ((std::string)(uri))((name)(code))((name)(table))((uint64_t)(scope))((uint8_t)(index_position))((checksum256)(key))((uint8_t)(keysize)),     \
+         ((uint32_t)(size))((vector<std::string>)(uris)), \
+         ((uint32_t)(size))((vector<std::string>)(uris))((vector<vector<char>>)(data)),TONAME(SVC_CONTRACT_NAME_IPFS) ) \
+{ \
+    _ipfs_warmuprow(size, uris, data, current_provider); \
+    SEND_SVC_SIGNAL(warmuprow, current_provider, package, size, uris)                         \
+}; \
+SVC_ACTION(cleanuprow, false, ((vector<string>)(uris)),     \
+         ((uint32_t)(size))((vector<string>)(uris)), \
+         ((uint32_t)(size))((vector<string>)(uris)),TONAME(SVC_CONTRACT_NAME_IPFS) ) \
+{ \
+    _ipfs_cleanuprow(size, uris, current_provider); \
+    SEND_SVC_SIGNAL(cleanuprow, current_provider, package, size, uris)                         \
 };  \
 static void svc_ipfs_commit(std::vector<char> data) { \
     SEND_SVC_REQUEST(commit, data) \
@@ -49,6 +70,15 @@ static void svc_ipfs_cleanup(std::string uri) { \
 };\
 static void svc_ipfs_warmup(std::string uri) { \
     SEND_SVC_REQUEST(warmup, uri) \
+};\
+static void svc_ipfs_warmupcode(std::string uri, name code) { \
+    SEND_SVC_REQUEST(warmupcode, uri, code) \
+};\
+static void svc_ipfs_warmuprow(std::string uri, name code, name table, uint64_t scope, uint8_t index_position, checksum256 key, uint8_t keysize) { \
+    SEND_SVC_REQUEST(warmuprow, uri, code, table, scope, index_position, key, keysize) \
+};\
+static void svc_ipfs_cleanuprow(vector<string> uris) { \
+    SEND_SVC_REQUEST(cleanuprow, uris) \
 };
 
 
@@ -65,7 +95,7 @@ static void svc_ipfs_warmup(std::string uri) { \
 
 
 #ifndef IPFS_SVC_COMMANDS
-#define IPFS_SVC_COMMANDS() (xcommit)(xcleanup)(xwarmup)
+#define IPFS_SVC_COMMANDS() (xcommit)(xcleanup)(xwarmup)(xwarmupcode)(xwarmuprow)(xcleanuprow)
 
 
 #ifndef IPFS_DAPPSERVICE_SKIP_HELPER
