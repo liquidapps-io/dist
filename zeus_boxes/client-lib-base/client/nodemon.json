@@ -1,6 +1,0 @@
-{
-    "watch": ["dist"],
-    "ext": "ts",
-    "ignore": ["src/**/*.spec.ts"],
-    "exec": "tsc"
-  }
