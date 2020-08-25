@@ -261,18 +261,6 @@ ExternalProject_Add(
             )
 
 ExternalProject_Add(
-               chess
-               SOURCE_DIR chess
-               BINARY_DIR chess
-               CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
-               UPDATE_COMMAND ""
-               PATCH_COMMAND ""
-               TEST_COMMAND ""
-               INSTALL_COMMAND ""
-               BUILD_ALWAYS 1
-            )
-
-ExternalProject_Add(
                dappservicex
                SOURCE_DIR dappservicex
                BINARY_DIR dappservicex
@@ -396,30 +384,6 @@ ExternalProject_Add(
                combined
                SOURCE_DIR combined
                BINARY_DIR combined
-               CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
-               UPDATE_COMMAND ""
-               PATCH_COMMAND ""
-               TEST_COMMAND ""
-               INSTALL_COMMAND ""
-               BUILD_ALWAYS 1
-            )
-
-ExternalProject_Add(
-               tokenpeg
-               SOURCE_DIR tokenpeg
-               BINARY_DIR tokenpeg
-               CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
-               UPDATE_COMMAND ""
-               PATCH_COMMAND ""
-               TEST_COMMAND ""
-               INSTALL_COMMAND ""
-               BUILD_ALWAYS 1
-            )
-
-ExternalProject_Add(
-               tokenpegx
-               SOURCE_DIR tokenpegx
-               BINARY_DIR tokenpegx
                CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${EOSIO_CDT_ROOT}/lib/cmake/eosio.cdt/EosioWasmToolchain.cmake
                UPDATE_COMMAND ""
                PATCH_COMMAND ""
