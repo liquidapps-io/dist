@@ -1,0 +1,14 @@
+{
+    "keep": {
+        "days": false,
+        "amount": 5
+    },
+    "auditLog": "logs/.67c6841ee9c70ede86212bf2a0224c4b462c62f2-audit.json",
+    "files": [
+        {
+            "date": 1611232896383,
+            "name": "logs/pprovider1-bin-2021-01-21.log",
+            "hash": "ec52f0228aa49a037562cb7470965541"
+        }
+    ]
+}
