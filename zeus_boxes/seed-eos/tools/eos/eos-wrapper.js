@@ -18,7 +18,7 @@ function getEosWrapper(config) {
         readRetries: process.env.DSP_READ_RETRIES ||  10,
         pushRetries: process.env.DSP_PUSH_RETRIES ||  3,
         backoffExponent: process.env.DSP_BACKOFF_EXPONENT ||  1.5,
-        backoff: process.env.DSP_BACKOFF ||  500
+        backoff: process.env.DSP_BACKOFF ||  10
     }
 
     const rpc = new JsonRpc(config.httpEndpoint, { fetch });
