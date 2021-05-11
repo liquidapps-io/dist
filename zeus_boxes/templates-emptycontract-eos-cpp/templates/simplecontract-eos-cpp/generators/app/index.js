@@ -4,6 +4,8 @@ var Generator = require('yeoman-generator');
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
+const { requireBox } = require('@liquidapps/box-utils');
+const { execPromise } = requireBox('seed-zeus-support/_exec');
 
 module.exports = class extends Generator {
     // The name `constructor` is important here
@@ -11,10 +13,12 @@ module.exports = class extends Generator {
         // Calling the super constructor is important so our generator is correctly set up
         super(args, opts);
         this.argument('contractname', { type: String, required: true });
+        this.argument('templateName', { type: String, required: true });
     }
 
     write1() {
         var name = _.kebabCase(this.options.contractname);
+        var templateName = _.kebabCase(this.options.templateName);
         this.fs.copyTpl(
             this.templatePath('**'),
             this.destinationPath(`contracts/eos/${name}/`),
@@ -23,7 +27,7 @@ module.exports = class extends Generator {
 
         this.fs.copyTpl(
             path.resolve(`zeus_boxes/templates-emptycontract-eos-cpp/templates/${templateName}/generators/app/test-templates/contract.spec.js`),
-            this.destinationPath(`zeus_boxes/test/${name}.spec.js`),
+            this.destinationPath(`test/${name}.spec.js`),
             this.options
         );
 
