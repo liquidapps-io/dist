@@ -6,9 +6,9 @@
     "auditLog": "logs/.67c6841ee9c70ede86212bf2a0224c4b462c62f2-audit.json",
     "files": [
         {
-            "date": 1671567905923,
-            "name": "logs/pprovider1-bin-2022-12-20.log",
-            "hash": "aa1de0367f5b24e769839d6d8f6319a2"
+            "date": 1672148257829,
+            "name": "logs/pprovider1-bin-2022-12-27.log",
+            "hash": "50656776260248c938c67d5965dac432"
         }
     ]
 }
